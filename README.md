@@ -250,3 +250,42 @@ db.livres.find({titre: {$regex: ".*Dune.*"}})
 ```json
 db.livres.find({prix: {$gt: 10, $lt: 20}})
 ```
+
+### Partie 6
+
+#### 6.1 Modèle embarqué vs référence
+
+1. et 2.
+
+```json
+db.emprunts.insertMany([
+  {
+    "utilisateur_id": ObjectId("67c5c5747e07f957bf688546"),
+    "livre_id": ObjectId("67c5c48d5eaf82454e9f8716"),
+    "date_emprunt": new Date("2025-02-15"),
+    "date_retour_prevue": new Date("2025-03-15"),
+    "date_retour_effective": null,
+    "statut": "en cours"
+  },
+  {
+    "utilisateur_id": ObjectId("67c5c57f7e07f957bf688547"),
+    "livre_id": ObjectId("67c5c49d5eaf82454e9f8717"),
+    "date_emprunt": new Date("2025-01-10"),
+    "date_retour_prevue": new Date("2025-02-10"),
+    "date_retour_effective": new Date("2025-02-08"),
+    "statut": "retourné"
+  },
+  {
+    "utilisateur_id": ObjectId("67c5c58a7e07f957bf688548"),
+    "livre_id": ObjectId("67c5c4a95eaf82454e9f8718"),
+    "date_emprunt": new Date("2025-02-25"),
+    "date_retour_prevue": new Date("2025-03-25"),
+    "date_retour_effective": null,
+    "statut": "en retard"
+  }
+])
+```
+
+3. Comparez cette approche avec celle où les emprunts sont directement intégrés dans le document utilisateur
+
+Cette approche est plus logique car c'est une relation un à plusieurs.
