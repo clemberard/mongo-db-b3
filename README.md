@@ -289,3 +289,39 @@ db.emprunts.insertMany([
 3. Comparez cette approche avec celle où les emprunts sont directement intégrés dans le document utilisateur
 
 Cette approche est plus logique car c'est une relation un à plusieurs.
+
+#### Réflexion sur la modélisation
+
+1. Quels sont les avantages et inconvénients de chaque approche ?
+
+**Modèle embarqué**
+
+_Avantanges_
+
+- ...
+- ...
+
+_Inconvénients_
+
+- ...
+- ...
+
+**Modèle référence**
+
+_Avantanges_
+
+- ...
+- ...
+
+_Inconvénients_
+
+- ...
+- ...
+
+2. Quelle approche privilégieriez-vous pour une application réelle et pourquoi ?
+
+L'approche du modèle référence
+
+3. Comment modéliseriez-vous les cas où un même livre peut exister en plusieurs exemplaires ?
+
+Une autre table livres_exemplaires ayant pour référence la table livre
