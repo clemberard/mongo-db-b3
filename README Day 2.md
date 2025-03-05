@@ -464,7 +464,7 @@ db.bibliotheques
   }
 }
 ```
- 
+
 2. Trouvez les bibliothèques les plus proches d'un utilisateur spécifique
 
 ```javascript
@@ -716,9 +716,9 @@ db.livraisons.insertMany([
   },
 ]);
 
-db.livraisons.createIndex({ "adresse_arrivee": "2dsphere" });
-db.livraisons.createIndex({ "position_actuelle": "2dsphere" });
-db.livraisons.createIndex({ "itiniéraire": "2dsphere" });
+db.livraisons.createIndex({ adresse_arrivee: "2dsphere" });
+db.livraisons.createIndex({ position_actuelle: "2dsphere" });
+db.livraisons.createIndex({ itiniéraire: "2dsphere" });
 ```
 
 2. Faire une fonction pour mettre à jour la position actuelle d'une livraison
@@ -789,3 +789,166 @@ db.livraisons.find({
 ### Rapport
 
 [Rapport concis TP1](RapportTp2Day2.md)
+
+## TP 3
+
+### Exercice 3.1
+
+1. Créer un pipeline d'aggregation pour calculer les stats par genre de livre
+
+```javascript
+// REQUETE
+db.livres.aggregate([
+  {
+    $group: {
+      _id: "$genre",
+      nombre: { $sum: 1 },
+      note_moyenne: { $avg: "$note_moyenne" },
+      prix_moyen: { $avg: "$prix" },
+      prix_min: { $min: "$prix" },
+      prix_max: { $max: "$prix" },
+    },
+  },
+]);
+```
+
+```javascript
+// RESULTAT
+{
+  _id: 'Science-fiction',
+  nombre: 104,
+  note_moyenne: 2.576923076923077,
+  prix_moyen: 20.221153846153847,
+  prix_min: 5,
+  prix_max: 34
+}
+{
+  _id: 'Policier',
+  nombre: 109,
+  note_moyenne: 2.293577981651376,
+  prix_moyen: 18.293577981651374,
+  prix_min: 5,
+  prix_max: 34
+}
+{
+  _id: 'Jeunesse',
+  nombre: 75,
+  note_moyenne: 2.16,
+  prix_moyen: 21.066666666666666,
+  prix_min: 5,
+  prix_max: 34
+}
+{
+  _id: 'Historique',
+  nombre: 104,
+  note_moyenne: 2.4423076923076925,
+  prix_moyen: 17.240384615384617,
+  prix_min: 5,
+  prix_max: 34
+}
+{
+  _id: 'Romance',
+  nombre: 106,
+  note_moyenne: 2.358490566037736,
+  prix_moyen: 18.933962264150942,
+  prix_min: 5,
+  prix_max: 34
+}
+{
+  _id: 'Horreur',
+  nombre: 99,
+  note_moyenne: 2.2323232323232323,
+  prix_moyen: 19.858585858585858,
+  prix_min: 5,
+  prix_max: 34
+}
+{
+  _id: 'Thriller',
+  nombre: 89,
+  note_moyenne: 2.595505617977528,
+  prix_moyen: 19.01123595505618,
+  prix_min: 5,
+  prix_max: 34
+}
+{
+  _id: 'Biographie',
+  nombre: 106,
+  note_moyenne: 2.2641509433962264,
+  prix_moyen: 20.08490566037736,
+  prix_min: 5,
+  prix_max: 34
+}
+{
+  _id: 'BD',
+  nombre: 103,
+  note_moyenne: 2.407766990291262,
+  prix_moyen: 20.563106796116504,
+  prix_min: 5,
+  prix_max: 34
+}
+{
+  _id: 'Fantasy',
+  nombre: 105,
+  note_moyenne: 2.5047619047619047,
+  prix_moyen: 19.723809523809525,
+  prix_min: 5,
+  prix_max: 34
+}
+```
+
+2. Analyser la répartition des livres par éditeur
+
+```javascript
+// REQUETE
+db.livres.aggregate([
+  {
+    $group: {
+      _id: "$editeur",
+      nombre: { $sum: 1 },
+      nombre_genres_differents: { $addToSet: "$genre" },
+      nombre_auteurs_differents: { $addToSet: "$auteur" },
+      note_moynne: { $avg: "$note_moyenne" },
+    },
+  },
+  { $sort: { nombre: -1 } },
+]);
+```
+
+```javascript
+// RESULTAT
+{
+  _id: 'Gallimard',
+  nombre: 95,
+  nombre_genres_differents: [
+    'Science-fiction',
+    'Horreur',
+    'Jeunesse',
+    'Romance',
+    'Fantasy',
+    'Policier',
+    'BD',
+    'Historique',
+    'Biographie',
+    'Thriller'
+  ],
+  nombre_auteurs_differents: [
+    'Auteur 987',
+    'Auteur 86',
+    'Auteur 477',
+    'Auteur 519',
+    'Auteur 375',
+    'Auteur 444',
+    'Auteur 688',
+    'Auteur 666',
+    'Auteur 775',
+    'Auteur 827',
+    'Auteur 196',
+    'Auteur 964',
+    'Auteur 273',
+    'Auteur 423',
+    'Auteur 620',
+  ],
+  note_moynne: 2.477777777777778
+}
+...
+```
