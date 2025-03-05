@@ -215,7 +215,7 @@ db.setProfilingLevel(1, {slowms: 100});
 
 ### Rapport
 
-[Rapport concis](RapportTpDay2.md)
+[Rapport concis TP1](RapportTp1Day2.md)
 
 ## TP 2
 
@@ -402,13 +402,14 @@ db.bibliotheques.createIndex({ "adresse.coordonnees": "2dsphere" });
 1. Trouver les 5 utilisateurs les plus proches d'un point donné dans un rayon de 5km
 
 ```javascript
+// REQUETE
 db.bibliotheques
   .find({
     "adresse.coordonnees": {
       $near: {
         $geometry: {
           type: "Point",
-          coordinates: [48.8665, 2.3394],
+          coordinates: [2.3394, 48.8665],
         },
         $maxDistance: 5000,
       },
@@ -417,24 +418,90 @@ db.bibliotheques
   .limit(5);
 ```
 
+```javascript
+// RESULTAT
+{
+  _id: ObjectId('67c836e9d436aace4eba94e1'),
+  nom: 'Bibliothèque Nationale',
+  adresse: {
+    rue: '5 rue Vivienne',
+    ville: 'Paris',
+    cp: '75002',
+    coordonnees: {
+      type: 'Point',
+      coordinates: [
+        2.3394,
+        48.8665
+      ]
+    }
+  },
+  zone_service: {
+    type: 'Polygon',
+    coordinates: [
+      [
+        [
+          2.3394,
+          48.8665
+        ],
+        [
+          2.3394,
+          48.8666
+        ],
+        [
+          2.3395,
+          48.8666
+        ],
+        [
+          2.3395,
+          48.8665
+        ],
+        [
+          2.3394,
+          48.8665
+        ]
+      ]
+    ]
+  }
+}
+```
+ 
 2. Trouvez les bibliothèques les plus proches d'un utilisateur spécifique
 
 ```javascript
+// REQUETE
 db.utilisateurs.find(ObjectId("67c83641059f377a67c1e8e1")).forEach((user) => {
-  db.bibliotheques.aggregate([
-    {
-      $geoNear: {
-        near: user.adresse.coordonnees,
-        distanceField: "distance",
-        maxDistance: 5000000000,
-        spherical: true,
+  db.bibliotheques
+    .aggregate([
+      {
+        $geoNear: {
+          near: user.adresse.coordonnees,
+          distanceField: "distance",
+          maxDistance: 5000000000,
+          spherical: true,
+        },
       },
-    },
-    { $limit: 5 },
-  ]).forEach((bibliotheque) => {
-    printjson(bibliotheque);
-  });
+      { $limit: 5 },
+    ])
+    .forEach((bibliotheque) => {
+      printjson(bibliotheque);
+    });
 });
+```
+
+```javascript
+// RESULTAT
+{
+  _id: ObjectId('67c836e9d436aace4eba94e2'),
+  nom: 'Bibliothèque Municipale',
+  adresse: {
+    rue: '10 rue de la Mairie',
+    ville: 'Lyon',
+    cp: '69001',
+    coordonnees: { type: 'Point', coordinates: [Array] }
+  },
+  zone_service: { type: 'Polygon', coordinates: [ [Array] ] },
+  distance: 6508800.442979292
+}
 ```
 
 3. Utiliser l'opérateur `$geoNear` dans un pipeline d'aggregation pour obtenir les bibliothèques triées par distance et calculer précisément la distance
@@ -475,12 +542,30 @@ db.utilisateurs.aggregate([
 ]);
 ```
 
+```javascript
+// RESULTAT
+{
+  nom: 'Bibliothèque Universitaire',
+  distance: 6156332.590821906
+}
+{
+  nom: 'Bibliothèque Nationale',
+  distance: 6207774.322284079
+}
+{
+  nom: 'Bibliothèque Municipale',
+  distance: 6508800.442979292
+}
+```
+
 ### Exercice 2.3
 
 1. Utiliser `$geoWithin` pour trouver les utilisateurs à l'intérieur d'une zone définie par un polygone
 
 ```javascript
-const bibliothèque = db.bibliotheques.findOne({ nom: "Bibliothèque Nationale" });
+const bibliothèque = db.bibliotheques.findOne({
+  nom: "Bibliothèque Universitaire",
+});
 db.utilisateurs.find({
   "adresse.coordonnees": {
     $geoWithin: {
@@ -490,18 +575,217 @@ db.utilisateurs.find({
 });
 ```
 
+```javascript
+// RESULTAT
+{
+  _id: ObjectId('67c8592a059f377a67c1ecb6'),
+  nom: 'Berard',
+  prenom: 'Clément',
+  email: 'clement.berard@example.com',
+  adresse: {
+    rue: "2 rue de l'excellence",
+    ville: 'Melonville',
+    cp: '12345',
+    coordonnees: {
+      type: 'Point',
+      coordinates: [
+        7.7521,
+        48.5734
+      ]
+    }
+  },
+  tags: [
+    'tag1',
+    'tag2',
+    'tag3'
+  ]
+}
+```
+
 2. Trouver tous les utilisateurs qui se trouvent dans la zone de service d'une bibliotheque spécifique
 
 ```javascript
-db.bibliotheques.find({ nom: "Bibliothèque Nationale" }).forEach((bibliotheque) => {
-  db.utilisateurs.find({
-    "adresse.coordonnees": {
-      $geoWithin: {
-        $geometry: bibliotheque.zone_service,
-      },
-    },
-  }).forEach((user) => {
-    printjson(user);
+db.bibliotheques
+  .find({ nom: "Bibliothèque Universitaire" })
+  .forEach((bibliotheque) => {
+    db.utilisateurs
+      .find({
+        "adresse.coordonnees": {
+          $geoWithin: {
+            $geometry: bibliotheque.zone_service,
+          },
+        },
+      })
+      .forEach((user) => {
+        printjson(user);
+      });
   });
+```
+
+3. Créer une collection `rues` avec au moins une rue représentée comme un LineString GeoJSON, puis utiliser `$geoIntersects` pour trouver les bibliothèques dont la zone intersecte la rue
+
+```javascript
+db.rues.insertOne({
+  nom: "rue de la Paix",
+  troncon: {
+    type: "LineString",
+    coordinates: [
+      [2.3394, 48.8665],
+      [2.3394, 48.8666],
+    ],
+  },
+});
+
+db.rues.createIndex({ troncon: "2dsphere" });
+
+// REQUETE
+db.bibliotheques.find({
+  zone_service: {
+    $geoIntersects: {
+      $geometry: db.rues.findOne().troncon,
+    },
+  },
 });
 ```
+
+### Exercice 2.4
+
+1. Créer une collection livraisons pour suivre les livraisons de livres
+
+```javascript
+db.livraisons.insertMany([
+  {
+    livre: ObjectId("67c83641059f377a67c1e8e1"),
+    utilisateur: ObjectId("67c83641059f377a67c1e8e1"),
+    bibliotheque: ObjectId("67c83641059f377a67c1e8e1"),
+    adresse_arrivee: {
+      type: "Point",
+      coordinates: [7.7521, 48.5734],
+    },
+    position_actuelle: {
+      type: "Point",
+      coordinates: [7.5521, 48.5734],
+    },
+    itiniéraire: {
+      type: "LineString",
+      coordinates: [
+        [7.3521, 48.5734],
+        [7.7521, 48.5734],
+      ],
+    },
+  },
+  {
+    livre: ObjectId("67c83641059f377a67c1e8e1"),
+    utilisateur: ObjectId("67c83641059f377a67c1e8e1"),
+    bibliotheque: ObjectId("67c83641059f377a67c1e8e1"),
+    adresse_arrivee: {
+      type: "Point",
+      coordinates: [7.7521, 48.5734],
+    },
+    position_actuelle: {
+      type: "Point",
+      coordinates: [7.7521, 48.5734],
+    },
+    itiniéraire: {
+      type: "LineString",
+      coordinates: [
+        [7.7521, 48.5734],
+        [7.7521, 48.5735],
+      ],
+    },
+  },
+  {
+    livre: ObjectId("67c83641059f377a67c1e8e1"),
+    utilisateur: ObjectId("67c83641059f377a67c1e8e1"),
+    bibliotheque: ObjectId("67c83641059f377a67c1e8e1"),
+    adresse_arrivee: {
+      type: "Point",
+      coordinates: [7.7521, 48.5734],
+    },
+    position_actuelle: {
+      type: "Point",
+      coordinates: [7.7521, 48.5735],
+    },
+    itiniéraire: {
+      type: "LineString",
+      coordinates: [
+        [7.7521, 48.5735],
+        [7.7522, 48.5735],
+      ],
+    },
+  },
+]);
+
+db.livraisons.createIndex({ "adresse_arrivee": "2dsphere" });
+db.livraisons.createIndex({ "position_actuelle": "2dsphere" });
+db.livraisons.createIndex({ "itiniéraire": "2dsphere" });
+```
+
+2. Faire une fonction pour mettre à jour la position actuelle d'une livraison
+
+```javascript
+function updatePosition(livraisonId, position) {
+  db.livraisons.updateOne(
+    { _id: ObjectId(livraisonId) },
+    { $set: { position_actuelle: { type: "Point", coordinates: position } } }
+  );
+}
+```
+
+3. Créer une requete pour trouver toutes les livraisons en cours à une distance de 1km d'une position donnée
+
+```javascript
+// REQUETE
+db.livraisons.find({
+  position_actuelle: {
+    $near: {
+      $geometry: {
+        type: "Point",
+        coordinates: [7.7521, 48.5734],
+      },
+      $maxDistance: 1000,
+    },
+  },
+});
+```
+
+```javascript
+// RESULTAT
+{
+  _id: ObjectId('67c85d2b059f377a67c1ecbd'),
+  livre: ObjectId('67c83641059f377a67c1e8e1'),
+  utilisateur: ObjectId('67c83641059f377a67c1e8e1'),
+  bibliotheque: ObjectId('67c83641059f377a67c1e8e1'),
+  adresse_arrivee: {
+    type: 'Point',
+    coordinates: [
+      7.7521,
+      48.5734
+    ]
+  },
+  position_actuelle: {
+    type: 'Point',
+    coordinates: [
+      7.7521,
+      48.5735
+    ]
+  },
+  'itiniéraire': {
+    type: 'LineString',
+    coordinates: [
+      [
+        7.7521,
+        48.5735
+      ],
+      [
+        7.7522,
+        48.5735
+      ]
+    ]
+  }
+}
+```
+
+### Rapport
+
+[Rapport concis TP1](RapportTp2Day2.md)
