@@ -325,3 +325,7 @@ L'approche du modèle référence
 3. Comment modéliseriez-vous les cas où un même livre peut exister en plusieurs exemplaires ?
 
 Une autre table livres_exemplaires ayant pour référence la table livre
+
+## Day 2
+
+[Day 2](README%20Day%202.md)
